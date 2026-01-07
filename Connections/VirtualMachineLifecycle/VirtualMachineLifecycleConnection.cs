@@ -35,7 +35,7 @@ public class VirtualMachineLifecycleConnection : IConnection, IHaveSecrets
   public void RegisterServices(IServiceCollection services)
   {
     services.AddSingleton<VirtualMachineLifecycleContextFactory>();
-    services.AddScoped(sp => sp.GetRequiredService<VirtualMachineLifecycleContextFactory>().CreateDbContext());
+    services.AddTransient(sp => sp.GetRequiredService<VirtualMachineLifecycleContextFactory>().CreateDbContext());
   }
 
   public Ivy.Services.Secret[] GetSecrets()
