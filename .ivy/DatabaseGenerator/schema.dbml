@@ -1,0 +1,69 @@
+Enum user_type {
+    viewer
+    operator
+}
+
+Enum vm_status {
+    running
+    stopped
+}
+
+Enum provider {
+    aws
+    azure
+}
+
+Enum audit_action {
+    login
+    logout
+    snapshot_created
+    snapshot_deleted
+    snapshot_restored
+    vm_start
+    vm_stop
+    reboot
+    delete
+    view
+}
+
+Table user {
+    id int [pk, increment]
+    username varchar [not null]
+    type user_type [not null]
+    created_at timestamp [not null]
+    updated_at timestamp [not null]
+}
+
+Table vm {
+    id int [pk, increment]
+    name varchar [not null]
+    status vm_status [not null]
+    provider provider [not null]
+    tags text
+    last_action timestamp
+    created_at timestamp [not null]
+    updated_at timestamp [not null]
+}
+
+Table snapshot {
+    id int [pk, increment]
+    vm_id int [not null]
+    created_by int [not null]
+    name varchar [not null]
+    created_at timestamp [not null]
+    updated_at timestamp [not null]
+}
+
+Table audit_log {
+    id int [pk, increment]
+    user_id int [not null]
+    vm_id int
+    action audit_action [not null]
+    timestamp timestamp [not null]
+    details varchar
+}
+
+Ref: snapshot.vm_id > vm.id
+Ref: snapshot.created_by > user.id
+Ref: audit_log.user_id > user.id
+Ref: audit_log.vm_id > vm.id
