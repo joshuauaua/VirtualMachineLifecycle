@@ -15,6 +15,7 @@ public class UsersApp : ViewBase
       var client = this.UseService<IClientProvider>();
       var users = this.UseState<List<User>>([]);
       var selected = this.UseState<HashSet<int>>([]);
+      var sortDescending = this.UseState(true);
 
       this.UseEffect(async () =>
       {
@@ -28,6 +29,9 @@ public class UsersApp : ViewBase
           Layout.Grid().Columns(2)
               | Text.Block("Users")
               | (Layout.Horizontal().Align(Align.Right)
+                  | new Button("Sort Date", _ => sortDescending.Set(!sortDescending.Value))
+                      .Icon(sortDescending.Value ? Icons.ChevronDown : Icons.ChevronUp)
+                      .Variant(ButtonVariant.Outline)
                   | new Button("Actions")
                       .Icon(Icons.Menu)
                       .Variant(ButtonVariant.Outline)
@@ -38,11 +42,15 @@ public class UsersApp : ViewBase
                 )
       );
 
+      var sortedUsers = sortDescending.Value
+          ? users.Value.OrderByDescending(x => x.CreatedAt)
+          : users.Value.OrderBy(x => x.CreatedAt);
+
       return new HeaderLayout(
           toolbar,
           new Card(
               Layout.Vertical()
-                  | users.Value.Select(x => new
+                  | sortedUsers.Select(x => new
                   {
                     Select = selected.Value.Contains(x.Id)
                           ? Icons.Check.ToButton(_ =>

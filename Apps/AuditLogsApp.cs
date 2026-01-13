@@ -15,6 +15,7 @@ public class AuditLogsApp : ViewBase
       var client = this.UseService<IClientProvider>();
       var auditLogs = this.UseState<List<AuditLog>>([]);
       var selected = this.UseState<HashSet<int>>([]);
+      var sortDescending = this.UseState(true);
 
       this.UseEffect(async () =>
       {
@@ -29,6 +30,9 @@ public class AuditLogsApp : ViewBase
           Layout.Grid().Columns(2)
               | Text.Block("Audit Logs")
               | (Layout.Horizontal().Align(Align.Right)
+                  | new Button("Sort Date", _ => sortDescending.Set(!sortDescending.Value))
+                      .Icon(sortDescending.Value ? Icons.ChevronDown : Icons.ChevronUp)
+                      .Variant(ButtonVariant.Outline)
                   | new Button("Actions")
                       .Icon(Icons.Menu)
                       .Variant(ButtonVariant.Outline)
@@ -38,11 +42,15 @@ public class AuditLogsApp : ViewBase
                 )
       );
 
+      var sortedAuditLogs = sortDescending.Value
+          ? auditLogs.Value.OrderByDescending(x => x.Timestamp)
+          : auditLogs.Value.OrderBy(x => x.Timestamp);
+
       return new HeaderLayout(
           toolbar,
           new Card(
               Layout.Vertical()
-                  | auditLogs.Value.Select(x => new
+                  | sortedAuditLogs.Select(x => new
                   {
                     Select = selected.Value.Contains(x.Id)
                           ? Icons.Check.ToButton(_ =>

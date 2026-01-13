@@ -15,6 +15,7 @@ public class VMsApp : ViewBase
       var client = this.UseService<IClientProvider>();
       var vms = this.UseState<List<Vm>>([]);
       var selected = this.UseState<HashSet<int>>([]);
+      var sortDescending = this.UseState(true);
 
       this.UseEffect(async () =>
       {
@@ -29,6 +30,9 @@ public class VMsApp : ViewBase
           Layout.Grid().Columns(2)
               | Text.Block("Virtual Machines")
               | (Layout.Horizontal().Align(Align.Right)
+                  | new Button("Sort Date", _ => sortDescending.Set(!sortDescending.Value))
+                      .Icon(sortDescending.Value ? Icons.ChevronDown : Icons.ChevronUp)
+                      .Variant(ButtonVariant.Outline)
                   | new Button("Actions")
                       .Icon(Icons.Menu)
                       .Variant(ButtonVariant.Outline)
@@ -39,11 +43,15 @@ public class VMsApp : ViewBase
                 )
       );
 
+      var sortedVms = sortDescending.Value
+          ? vms.Value.OrderByDescending(x => x.CreatedAt)
+          : vms.Value.OrderBy(x => x.CreatedAt);
+
       return new HeaderLayout(
           toolbar,
           new Card(
               Layout.Vertical()
-                  | vms.Value.Select(x => new
+                  | sortedVms.Select(x => new
                   {
                     Select = selected.Value.Contains(x.Id)
                         ? Icons.Check.ToButton(_ =>

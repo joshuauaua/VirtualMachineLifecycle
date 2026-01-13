@@ -15,6 +15,7 @@ public class SnapshotsApp : ViewBase
       var client = this.UseService<IClientProvider>();
       var snapshots = this.UseState<List<Snapshot>>([]);
       var selected = this.UseState<HashSet<int>>([]);
+      var sortDescending = this.UseState(true);
 
       this.UseEffect(async () =>
       {
@@ -29,6 +30,9 @@ public class SnapshotsApp : ViewBase
           Layout.Grid().Columns(2)
               | Text.Block("Snapshots")
               | (Layout.Horizontal().Align(Align.Right)
+                  | new Button("Sort Date", _ => sortDescending.Set(!sortDescending.Value))
+                      .Icon(sortDescending.Value ? Icons.ChevronDown : Icons.ChevronUp)
+                      .Variant(ButtonVariant.Outline)
                   | new Button("Actions")
                       .Icon(Icons.Menu)
                       .Variant(ButtonVariant.Outline)
@@ -39,11 +43,15 @@ public class SnapshotsApp : ViewBase
                 )
       );
 
+      var sortedSnapshots = sortDescending.Value
+          ? snapshots.Value.OrderByDescending(x => x.CreatedAt)
+          : snapshots.Value.OrderBy(x => x.CreatedAt);
+
       return new HeaderLayout(
           toolbar,
           new Card(
               Layout.Vertical()
-                  | snapshots.Value.Select(x => new
+                  | sortedSnapshots.Select(x => new
                   {
                     Select = selected.Value.Contains(x.Id)
                           ? Icons.Check.ToButton(_ =>
