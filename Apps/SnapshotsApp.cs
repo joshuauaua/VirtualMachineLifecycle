@@ -1,3 +1,5 @@
+using VirtualMachineLifecycle.Connections.VirtualMachineLifecycle;
+using Microsoft.EntityFrameworkCore;
 using VirtualMachineLifecycle.Apps.Views;
 
 namespace VirtualMachineLifecycle.Apps;
@@ -5,8 +7,69 @@ namespace VirtualMachineLifecycle.Apps;
 [App(icon: Icons.Camera, path: ["Apps"])]
 public class SnapshotsApp : ViewBase
 {
-    public override object? Build()
+  public override object? Build()
+  {
+    try
     {
-        return this.UseBlades(() => new SnapshotListBlade(), "Search");
+      var db = this.UseService<VirtualMachineLifecycleContext>();
+      var client = this.UseService<IClientProvider>();
+      var snapshots = this.UseState<List<Snapshot>>([]);
+      var selected = this.UseState<HashSet<int>>([]);
+
+      this.UseEffect(async () =>
+      {
+        var data = await db.Snapshots
+                      .Include(x => x.Vm)
+                      .Include(x => x.CreatedByNavigation)
+                      .ToListAsync();
+        snapshots.Set(data);
+      });
+
+      var toolbar = new Card(
+          Layout.Grid().Columns(2)
+              | Text.Block("Snapshots")
+              | (Layout.Horizontal().Align(Align.Right)
+                  | new Button("Actions")
+                      .Icon(Icons.Menu)
+                      .Variant(ButtonVariant.Outline)
+                      .WithDropDown(
+                          MenuItem.Default("Restore Snapshot").HandleSelect(() => client.Toast("Restore Snapshot triggered")),
+                          MenuItem.Default("Delete Snapshot").HandleSelect(() => client.Toast("Delete Snapshot triggered"))
+                      )
+                )
+      );
+
+      return new HeaderLayout(
+          toolbar,
+          new Card(
+              Layout.Vertical()
+                  | snapshots.Value.Select(x => new
+                  {
+                    Select = selected.Value.Contains(x.Id)
+                          ? Icons.Check.ToButton(_ =>
+                          {
+                            var newSet = new HashSet<int>(selected.Value);
+                            newSet.Remove(x.Id);
+                            selected.Set(newSet);
+                          }).Ghost()
+                          : Icons.Square.ToButton(_ =>
+                          {
+                            var newSet = new HashSet<int>(selected.Value);
+                            newSet.Add(x.Id);
+                            selected.Set(newSet);
+                          }).Ghost(),
+                    Name = x.Name,
+                    VmName = x.Vm.Name,
+                    CreatedBy = x.CreatedByNavigation.Username,
+                    CreatedAt = x.CreatedAt
+                  }).ToTable().Width(Size.Full())
+                  | Text.Block($"Total Snapshots: {snapshots.Value.Count} | Selected: {selected.Value.Count}")
+          ).Width(Size.Full())
+      );
     }
+    catch (Exception ex)
+    {
+      return Text.Block($"Error: {ex.Message}\nStack: {ex.StackTrace}");
+    }
+  }
 }
